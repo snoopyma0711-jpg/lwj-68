@@ -493,24 +493,56 @@ app.post('/api/tasks/:taskId/devices/:deviceId/submit', authMiddleware, upload.a
       }
     }
 
+    const abnormalItems = checkResults.filter(cr => cr.result === 'abnormal');
+    const totalPhotos = (req.files || []).length;
+    const abnormalCount = abnormalItems.length;
+
+    if (abnormalCount > 0 && totalPhotos === 0) {
+      return res.status(400).json({ error: '存在异常项，必须上传照片' });
+    }
+    if (totalPhotos > abnormalCount * 3) {
+      return res.status(400).json({ error: '照片总数超出限制，每个异常项最多3张' });
+    }
+
     const photoIndexMap = new Map();
-    if (req.files && req.files.length > 0) {
+    if (totalPhotos > 0) {
       let photoIdx = 0;
       for (const cr of checkResults) {
         if (cr.result === 'abnormal') {
-          const photoCount = cr.photo_count || (cr.photos && cr.photos.length) || 0;
+          let itemPhotoCount = cr.photo_count;
+          if (itemPhotoCount === undefined || itemPhotoCount === null) {
+            itemPhotoCount = cr.photos ? cr.photos.length : 0;
+          }
+          itemPhotoCount = parseInt(itemPhotoCount) || 0;
+
+          if (itemPhotoCount < 1) {
+            return res.status(400).json({ error: `异常项 "${cr.item_name}" 必须上传至少一张照片` });
+          }
+          if (itemPhotoCount > 3) {
+            return res.status(400).json({ error: `异常项 "${cr.item_name}" 最多只能上传3张照片` });
+          }
+
           const itemPhotos = [];
-          for (let i = 0; i < photoCount && photoIdx < req.files.length; i++) {
+          for (let i = 0; i < itemPhotoCount && photoIdx < totalPhotos; i++) {
             itemPhotos.push(req.files[photoIdx]);
             photoIdx++;
           }
-          if (photoCount > 0 && itemPhotos.length === 0) {
+
+          if (itemPhotos.length < 1) {
             return res.status(400).json({ error: `异常项 "${cr.item_name}" 必须上传至少一张照片` });
           }
-          if (photoCount > 3) {
-            return res.status(400).json({ error: `异常项 "${cr.item_name}" 最多只能上传3张照片` });
-          }
+
           photoIndexMap.set(cr.item_name, itemPhotos);
+        }
+      }
+
+      if (photoIdx < totalPhotos) {
+        return res.status(400).json({ error: '上传的照片数量与异常项不匹配' });
+      }
+    } else {
+      for (const cr of checkResults) {
+        if (cr.result === 'abnormal') {
+          return res.status(400).json({ error: `异常项 "${cr.item_name}" 必须上传至少一张照片` });
         }
       }
     }
