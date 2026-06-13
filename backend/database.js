@@ -117,7 +117,7 @@ function initDB() {
         device_id INTEGER NOT NULL,
         title TEXT NOT NULL,
         description TEXT,
-        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'accepted')),
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed', 'accepted', 'cancelled', 'rejected')),
         assignee_name TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         assigned_at DATETIME,
@@ -127,6 +127,41 @@ function initDB() {
         FOREIGN KEY (task_device_id) REFERENCES task_devices(id),
         FOREIGN KEY (check_result_id) REFERENCES check_results(id),
         FOREIGN KEY (device_id) REFERENCES devices(id)
+      )`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS spare_parts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        spec_model TEXT NOT NULL,
+        line_id INTEGER NOT NULL,
+        safety_stock INTEGER NOT NULL DEFAULT 0,
+        current_stock INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (name, spec_model),
+        FOREIGN KEY (line_id) REFERENCES production_lines(id)
+      )`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS work_order_spare_parts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        work_order_id INTEGER NOT NULL,
+        spare_part_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (work_order_id) REFERENCES work_orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (spare_part_id) REFERENCES spare_parts(id)
+      )`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS spare_part_stock_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        spare_part_id INTEGER NOT NULL,
+        change_type TEXT NOT NULL CHECK (change_type IN ('stock_in', 'assign', 'rollback')),
+        quantity INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        related_id INTEGER,
+        remark TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (spare_part_id) REFERENCES spare_parts(id)
       )`);
 
       const defaultPassword = bcrypt.hashSync('123456', 10);
