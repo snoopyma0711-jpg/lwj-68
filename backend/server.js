@@ -642,9 +642,9 @@ app.get('/api/work-orders', authMiddleware, async (req, res) => {
       SELECT wo.*, d.name as device_name, d.code as device_code, pl.name as line_name,
              cr.item_name, cr.remark as defect_remark
       FROM work_orders wo
-      JOIN devices d ON wo.device_id = d.id
+      LEFT JOIN devices d ON wo.device_id = d.id
       LEFT JOIN production_lines pl ON d.line_id = pl.id
-      JOIN check_results cr ON wo.check_result_id = cr.id
+      LEFT JOIN check_results cr ON wo.check_result_id = cr.id
       WHERE 1=1
     `;
     const params = [];
@@ -886,6 +886,11 @@ app.put('/api/work-orders/:id/reject', authMiddleware, roleMiddleware('superviso
 
 app.put('/api/work-orders/:id/complete', authMiddleware, roleMiddleware('supervisor'), async (req, res) => {
   try {
+    const order = await get('SELECT * FROM work_orders WHERE id = ?', [req.params.id]);
+    if (!order) return res.status(404).json({ error: '工单不存在' });
+    if (order.status !== 'in_progress') {
+      return res.status(400).json({ error: '当前工单状态不允许标记完成' });
+    }
     await run(
       `UPDATE work_orders SET status = 'completed', completed_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,
@@ -899,6 +904,11 @@ app.put('/api/work-orders/:id/complete', authMiddleware, roleMiddleware('supervi
 
 app.put('/api/work-orders/:id/accept', authMiddleware, roleMiddleware('supervisor'), async (req, res) => {
   try {
+    const order = await get('SELECT * FROM work_orders WHERE id = ?', [req.params.id]);
+    if (!order) return res.status(404).json({ error: '工单不存在' });
+    if (order.status !== 'completed') {
+      return res.status(400).json({ error: '当前工单状态不允许验收' });
+    }
     await run(
       `UPDATE work_orders SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP 
        WHERE id = ?`,

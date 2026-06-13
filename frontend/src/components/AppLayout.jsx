@@ -6,7 +6,8 @@ import {
   FormOutlined,
   ToolOutlined,
   LogoutOutlined,
-  UserOutlined
+  UserOutlined,
+  AppstoreOutlined
 } from '@ant-design/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
 
@@ -22,6 +23,7 @@ export default function AppLayout({ user, children, onLogout }) {
       { key: '/dashboard', icon: <DashboardOutlined />, label: '仪表盘' },
       { key: '/templates', icon: <FileTextOutlined />, label: '巡检模板' },
       { key: '/work-orders', icon: <ToolOutlined />, label: '维修工单' },
+      { key: '/spare-parts', icon: <AppstoreOutlined />, label: '备件库存' },
       { key: '/tasks', icon: <FormOutlined />, label: '巡检任务' }
     )
   } else {
@@ -39,6 +41,8 @@ export default function AppLayout({ user, children, onLogout }) {
     }
   }
 
+  const selectedKey = '/' + location.pathname.split('/').filter(Boolean)[0]
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sider theme="dark" width={220}>
@@ -51,7 +55,7 @@ export default function AppLayout({ user, children, onLogout }) {
         <Menu
           theme="dark"
           mode="inline"
-          selectedKeys={[location.pathname]}
+          selectedKeys={[selectedKey]}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
           style={{ borderRight: 0, marginTop: 8 }}

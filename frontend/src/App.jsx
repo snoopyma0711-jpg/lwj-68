@@ -5,6 +5,7 @@ import InspectorTasks from './pages/InspectorTasks'
 import TaskExecute from './pages/TaskExecute'
 import TemplateManagement from './pages/TemplateManagement'
 import WorkOrders from './pages/WorkOrders'
+import SpareParts from './pages/SpareParts'
 import Dashboard from './pages/Dashboard'
 import AppLayout from './components/AppLayout'
 
@@ -72,6 +73,16 @@ function App() {
           <PrivateRoute allowedRoles={['supervisor']}>
             <AppLayout user={user} onLogout={handleLogout}>
               <WorkOrders />
+            </AppLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/spare-parts"
+        element={
+          <PrivateRoute allowedRoles={['supervisor']}>
+            <AppLayout user={user} onLogout={handleLogout}>
+              <SpareParts />
             </AppLayout>
           </PrivateRoute>
         }
